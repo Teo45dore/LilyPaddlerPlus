@@ -14,8 +14,7 @@ public class Plugin : BaseUnityPlugin
     internal static Harmony Harmony { get; set; }
     internal const string PLUGIN_GUID = "com.Teo45dore.LilyPaddlerPlus";
     internal const string PLUGIN_NAME = "LilyPaddlerPlus";
-    internal const string PLUGIN_VERSION = "1.0.0";
-
+    internal const string PLUGIN_VERSION = "1.1.0";
 
     private void Awake()
     {
@@ -27,16 +26,6 @@ public class Plugin : BaseUnityPlugin
         Patch();
 
         Logger.LogInfo($"{PLUGIN_GUID} v{PLUGIN_VERSION} has loaded!");
-    }
-
-    private void Update()
-    {
-        ModConfig.Instance?.ProcessConfigReloadQueue();
-    }
-
-    private void OnDestroy()
-    {
-        ModConfig.Instance?.Dispose();
     }
 
     internal static void Patch()

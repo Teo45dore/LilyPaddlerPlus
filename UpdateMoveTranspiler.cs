@@ -31,6 +31,8 @@ internal class UnderWaterMotorTranspilers
         Label overrideLabel1 = ilGen.DefineLabel();
         Label ifEnd1 = ilGen.DefineLabel();
         Label ifEnd2 = ilGen.DefineLabel();
+        Label ifEnd3 = ilGen.DefineLabel();
+        Label ifElse1 = ilGen.DefineLabel();
 
         CodeInstruction extractedFalseBranch = null;
         CodeInstruction extractedUnConBranch = null;
@@ -134,11 +136,27 @@ internal class UnderWaterMotorTranspilers
         CodeInstruction labeledInstuction3 = new CodeInstruction(OpCodes.Nop);
         labeledInstuction3.labels.Add(ifEnd2);
 
+        CodeInstruction labeledInstuction4 = new CodeInstruction(OpCodes.Nop);
+        CodeInstruction labeledInstuction5 = new CodeInstruction(OpCodes.Nop);
+        labeledInstuction4.labels.Add(ifElse1);
+        labeledInstuction5.labels.Add(ifEnd3);
+
+
+
         newInstructions3.Add(new CodeInstruction(OpCodes.Ldloc_S, reduceDrag.LocalIndex));
         newInstructions3.Add(new CodeInstruction(OpCodes.Brfalse_S, ifEnd2));
         newInstructions3.Add(new CodeInstruction(OpCodes.Ldloc_S, (sbyte)10));
         newInstructions3.Add(new CodeInstruction(OpCodes.Ldloc_S, (sbyte)10));
-        newInstructions3.Add(new CodeInstruction(OpCodes.Ldc_R4, 2.9f));
+        newInstructions3.Add(new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(Player), "main")));
+        newInstructions3.Add(new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Player), "lilyPaddlerHypnosis")));
+        newInstructions3.Add(new CodeInstruction(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(PlayerLilyPaddlerHypnosis), "moving")));
+        newInstructions3.Add(new CodeInstruction(OpCodes.Brtrue_S, ifElse1));
+        newInstructions3.Add(new CodeInstruction(OpCodes.Ldc_R4, 2.75f));
+        newInstructions3.Add(new CodeInstruction(OpCodes.Br, ifEnd3));
+        newInstructions3.Add(labeledInstuction4);
+        newInstructions3.Add(new CodeInstruction(OpCodes.Ldc_R4, 1.5f));
+        newInstructions3.Add(new CodeInstruction(OpCodes.Br, ifEnd3));
+        newInstructions3.Add(labeledInstuction5);
         newInstructions3.Add(new CodeInstruction(OpCodes.Div, (sbyte)10));
         newInstructions3.Add(new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(HypnosisScreenFXControllerPatch), "disorientedIntensity")));
         newInstructions3.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Mathf), "Lerp")));

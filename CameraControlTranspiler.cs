@@ -48,12 +48,16 @@ internal class CameraControlTranspiler
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Method Declaration", "Harmony003:Harmony non-ref patch parameters modified", Justification = "Because harmony thinks this is a patch method so every line gets a warning.")]
     public static Vector2 DampDelta(Vector2 vector)
     {
-        if (HypnosisScreenFXControllerPatch.DampCamera()) {
-            vector *= 55 * HypnosisScreenFXControllerPatch.disorientedIntensity;
+        if (HypnosisScreenFXControllerPatch.DampCamera() && Config.ModConfig.Instance.IntensityCfg.Value != 0f) {
+            vector *= Mathf.Max(60 * HypnosisScreenFXControllerPatch.disorientedIntensity, 1);
             vector = Vector2.SmoothDamp(Vector2.zero, vector, ref currentLookVelocity, 1f * HypnosisScreenFXControllerPatch.disorientedIntensity);
 
             vector.x = Mathf.Clamp(vector.x, -maxRotationSpeed, maxRotationSpeed);
             vector.y = Mathf.Clamp(vector.y, -maxRotationSpeed, maxRotationSpeed);
+        }
+
+        if (Config.ModConfig.Instance.InvertCameraCfg.Value && HypnosisScreenFXControllerPatch.unscaledDisorientedIntensity > 0) {
+            vector = -vector;
         }
 
         return vector;

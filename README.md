@@ -1,4 +1,4 @@
-# LilyPaddlerPlus
+## LilyPaddlerPlus
 
 
 
@@ -18,7 +18,11 @@ Aggressive camera damping,
 
 Slippery movement in/out of water,
 
-Randomized hotbar binds (resets to normal when not disorented).
+Randomized hotbar binds (resets to normal when not disoriented),
+
+Reversed camera controls (suggested by @SirWarper420 on Nexus Mods!)
+
+Reversed movement controls (inspired by above suggestion)
 
 
 

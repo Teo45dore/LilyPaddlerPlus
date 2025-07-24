@@ -18,7 +18,11 @@ public class ModConfig : IDisposable
     public ConfigEntry<bool> DampCameraCfg { get; private set; }
     public ConfigEntry<bool> SlipperyMovementCfg { get; private set; }
     public ConfigEntry<bool> RandomizeHotbarCfg { get; private set; }
+    public ConfigEntry<float> IntensityCfg { get; private set; }
     public ConfigEntry<bool> MoreDebugCfg { get; private set; }
+    public ConfigEntry<bool> InvertCameraCfg { get; private set; }
+    public ConfigEntry<bool> InvertMovementCfg { get; private set; }
+
     private ConcurrentQueue<bool> reloadQueue = new ConcurrentQueue<bool>();
     private bool isDisposing = false;
 
@@ -48,11 +52,32 @@ public class ModConfig : IDisposable
             "When disoriented randomize the keybinds for the hotbar."
         );
 
+        this.IntensityCfg = this.cfg.Bind(
+            "General",
+            "IntensityMultiplier",
+            1f,
+            new ConfigDescription("Multiplies the intensity of the mod's effects, this only applies to effects that are scalable.", new AcceptableValueRange<float>(0, 100))
+        );
+
+        this.InvertCameraCfg = this.cfg.Bind(
+            "General.Community",
+            "InvertCameraControls",
+            true,
+            "When disoriented invert camera controls. Suggested by @SirWarper420 on Nexus Mods!"
+        );
+
+        this.InvertMovementCfg = this.cfg.Bind(
+            "General.Community",
+            "InvertMovementControls",
+            true,
+            "When disoriented invert movement controls. Inspired by @SirWarper420 on Nexus Mods!"
+        );
+
         this.MoreDebugCfg = this.cfg.Bind(
             "Other",
             "MoreDebug",
             false,
-            "Enables more extensive logging for debugging purposes. (When turned on the \"Debug\" logging channel must be enabled in the BepInEx.cfg file!)"
+            "Enables more extensive logging for bug reports. (When turned on the \"Debug\" logging channel in Logging.Disk must be enabled within the BepInEx.cfg file!)"
         );
 
         this.watcher = new FileSystemWatcher(Paths.ConfigPath) {
@@ -61,31 +86,29 @@ public class ModConfig : IDisposable
             EnableRaisingEvents = true
         };
 
-        this.watcher.Changed += this.OnConfigChanged;
+        this.watcher.Changed += this.ReloadConfig;
 
-        this.LoadConfig(true);
-    }
-
-
-    void ClearOrphanedEntries(ConfigFile cfg)
-    {
-        PropertyInfo orphanedEntriesProp = AccessTools.Property(typeof(ConfigFile), "OrphanedEntries");
-        Dictionary<ConfigDefinition, string> orphanedEntries = (Dictionary<ConfigDefinition, string>)orphanedEntriesProp.GetValue(cfg);
-        orphanedEntries.Clear();
-    }
-
-    void OnConfigChanged(object sender, FileSystemEventArgs e)
-    {
-        if (!this.isDisposing) {
-            this.reloadQueue.Enqueue(true);
+        Plugin.Logger.LogDebug($"Loaded ModConfig!");
+        if (this.MoreDebugCfg.Value) {
+            Plugin.Logger.LogDebug($"Config values: DampCam = {this.DampCameraCfg.Value}, Slippery = {this.SlipperyMovementCfg.Value}, RandHotbar = {this.RandomizeHotbarCfg.Value}, InvertCam = {this.InvertCameraCfg.Value}, Intensity = {this.IntensityCfg.Value}, InvertMove = {this.InvertMovementCfg.Value}, MoreDebug = {this.MoreDebugCfg.Value}");
         }
     }
 
-    void LoadConfig(bool firstLoad = false)
+    void ClearOrphanedEntries()
+    {
+        PropertyInfo orphanedEntriesProp = AccessTools.Property(typeof(ConfigFile), "OrphanedEntries");
+        Dictionary<ConfigDefinition, string> orphanedEntries = (Dictionary<ConfigDefinition, string>)orphanedEntriesProp.GetValue(this.cfg);
+        orphanedEntries.Clear();
+    }
+
+    void ReloadConfig(object o, FileSystemEventArgs e)
     {
         bool lastDampCameraVal = this.DampCameraCfg.Value;
         bool lastSlipperyMoveVal = this.SlipperyMovementCfg.Value;
         bool lastRandHotbarVal = this.RandomizeHotbarCfg.Value;
+        float lastIntensityVal = this.IntensityCfg.Value;
+        bool lastInvertCamVal = this.InvertCameraCfg.Value;
+        bool lastInvertMoveVal = this.InvertMovementCfg.Value;
         bool lastMoreDebugVal = this.MoreDebugCfg.Value;
 
         this.cfg.SaveOnConfigSet = false;
@@ -97,9 +120,13 @@ public class ModConfig : IDisposable
         this.DampCameraCfg.Value = this.cfg.Bind(this.DampCameraCfg.Definition.Section, this.DampCameraCfg.Definition.Key, (bool)this.DampCameraCfg.DefaultValue, this.DampCameraCfg.Description).Value;
         this.SlipperyMovementCfg.Value = this.cfg.Bind(this.SlipperyMovementCfg.Definition.Section, this.SlipperyMovementCfg.Definition.Key, (bool)this.SlipperyMovementCfg.DefaultValue, this.SlipperyMovementCfg.Description).Value;
         this.RandomizeHotbarCfg.Value = this.cfg.Bind(this.RandomizeHotbarCfg.Definition.Section, this.RandomizeHotbarCfg.Definition.Key, (bool)this.RandomizeHotbarCfg.DefaultValue, this.RandomizeHotbarCfg.Description).Value;
+        this.IntensityCfg.Value = this.cfg.Bind(this.IntensityCfg.Definition.Section, this.IntensityCfg.Definition.Key, (float)this.IntensityCfg.DefaultValue, this.IntensityCfg.Description).Value;
+        this.InvertCameraCfg.Value = this.cfg.Bind(this.InvertCameraCfg.Definition.Section, this.InvertCameraCfg.Definition.Key, (bool)this.InvertCameraCfg.DefaultValue, this.InvertCameraCfg.Description).Value;
+        this.InvertMovementCfg.Value = this.cfg.Bind(this.InvertMovementCfg.Definition.Section, this.InvertMovementCfg.Definition.Key, (bool)this.InvertMovementCfg.DefaultValue, this.InvertMovementCfg.Description).Value;
         this.MoreDebugCfg.Value = this.cfg.Bind(this.MoreDebugCfg.Definition.Section, this.MoreDebugCfg.Definition.Key, (bool)this.MoreDebugCfg.DefaultValue, this.MoreDebugCfg.Description).Value;
 
-        for (int i = 0; i < 4; i++) {
+
+        for (int i = 0; i < 7; i++) {
             if (i == 0) {
                 if (lastDampCameraVal != this.DampCameraCfg.Value) {
                     settingsWereChanged = true;
@@ -119,6 +146,24 @@ public class ModConfig : IDisposable
                 }
             }
             if (i == 3) {
+                if (lastIntensityVal != this.IntensityCfg.Value) {
+                    settingsWereChanged = true;
+                    break;
+                }
+            }
+            if (i == 4) {
+                if (lastInvertCamVal != this.InvertCameraCfg.Value) {
+                    settingsWereChanged = true;
+                    break;
+                }
+            }
+            if (i == 5) {
+                if (lastInvertMoveVal != this.InvertMovementCfg.Value) {
+                    settingsWereChanged = true;
+                    break;
+                }
+            }
+            if (i == 6) {
                 if (lastMoreDebugVal != this.MoreDebugCfg.Value) {
                     settingsWereChanged = true;
                     break;
@@ -126,14 +171,15 @@ public class ModConfig : IDisposable
             }
         }
 
-        this.ClearOrphanedEntries(this.cfg);
+        this.ClearOrphanedEntries();
 
         this.cfg.SaveOnConfigSet = true;
 
-        if (firstLoad) {
-            Plugin.Logger.LogDebug($"Loaded ModConfig! DampCam = {this.DampCameraCfg.Value}, Slippery = {this.SlipperyMovementCfg.Value}, RandHotbar = {this.RandomizeHotbarCfg.Value}, MoreDebug = {this.MoreDebugCfg.Value}");
-        } else if (settingsWereChanged) {
-            Plugin.Logger.LogDebug($"Reloaded ModConfig! DampCam = {this.DampCameraCfg.Value}, Slippery = {this.SlipperyMovementCfg.Value}, RandHotbar = {this.RandomizeHotbarCfg.Value}, MoreDebug = {this.MoreDebugCfg.Value}");
+        if (settingsWereChanged) {
+            Plugin.Logger.LogDebug($"Reloaded ModConfig!");
+            if (this.MoreDebugCfg.Value) {
+                Plugin.Logger.LogDebug($"New config values: DampCam = {this.DampCameraCfg.Value}, Slippery = {this.SlipperyMovementCfg.Value}, RandHotbar = {this.RandomizeHotbarCfg.Value}, Intensity = {this.IntensityCfg.Value}, InvertCam = {this.InvertCameraCfg.Value}, InvertMove = {this.InvertMovementCfg.Value}, MoreDebug = {this.MoreDebugCfg.Value}");
+            }
         }
     }
 
@@ -148,17 +194,10 @@ public class ModConfig : IDisposable
         if (this.isDisposing) return;
 
         if (disposing) {
-            this.watcher.Changed -= this.OnConfigChanged;
+            this.watcher.Changed -= this.ReloadConfig;
             this.watcher.Dispose();
         }
 
         this.isDisposing = true;
-    }
-
-    internal void ProcessConfigReloadQueue()
-    {
-        while (this.reloadQueue.TryDequeue(out _)) {
-            this.LoadConfig();
-        }
     }
 }

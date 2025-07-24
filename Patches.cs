@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using HarmonyLib;
+using LilyPaddlerPlus.Config;
 using LilyPaddlerPlus.Transpilers;
 using UnityEngine;
 
@@ -13,37 +14,35 @@ public class HypnosisScreenFXControllerPatch : MonoBehaviour
     public static FieldInfo intensity = AccessTools.Field(typeof(HypnosisScreenFXController), "intensity");
 
     public static float disorientedIntensity = 0f;
+    public static float unscaledDisorientedIntensity = 0f;
 
     [HarmonyPatch("Update")]
     [HarmonyPostfix]
     private static void UpdatePostfix(HypnosisScreenFXController __instance)
     {
-        disorientedIntensity = (float)intensity.GetValue(__instance);
+        unscaledDisorientedIntensity = (float)intensity.GetValue(__instance);
+        disorientedIntensity = Mathf.Max(unscaledDisorientedIntensity * ModConfig.Instance.IntensityCfg.Value, 0);
     }
 
     public static bool DampCamera()
     {
-        if (disorientedIntensity <= 0) {
+        if (unscaledDisorientedIntensity <= 0) {
             if (QuickSlotsPatch.shuffled) {
                 QuickSlotsPatch.UnShuffle();
             }
             return false;
         }
-        if (!QuickSlotsPatch.shuffled && Config.ModConfig.Instance.RandomizeHotbarCfg.Value) {
+        if (!QuickSlotsPatch.shuffled && ModConfig.Instance.RandomizeHotbarCfg.Value) {
             QuickSlotsPatch.RandomizeBinds();
-        } else if (QuickSlotsPatch.shuffled && !Config.ModConfig.Instance.RandomizeHotbarCfg.Value) {
+        } else if (QuickSlotsPatch.shuffled && !ModConfig.Instance.RandomizeHotbarCfg.Value) {
             QuickSlotsPatch.UnShuffle();
         }
-        return Config.ModConfig.Instance.DampCameraCfg.Value;
+        return ModConfig.Instance.DampCameraCfg.Value;
     }
 
     public static bool Slippery()
     {
-        if (disorientedIntensity <= 0) {
-            return false;
-        }
-
-        return Config.ModConfig.Instance.SlipperyMovementCfg.Value;
+        return disorientedIntensity > 0.1f && ModConfig.Instance.SlipperyMovementCfg.Value;
     }
 }
 
@@ -65,7 +64,7 @@ public class QuickSlotsPatch
     [HarmonyPrefix]
     private static void SelectPrefix(ref int slotID)
     {
-        if (!Config.ModConfig.Instance.RandomizeHotbarCfg.Value || slotID == -1 || !calledByInput) {
+        if (!ModConfig.Instance.RandomizeHotbarCfg.Value || slotID == -1 || !calledByInput) {
             return;
         }
 
@@ -102,7 +101,7 @@ public class QuickSlotsPatch
             QuickSlotsTranspilers.usedPrevSlots.Add(desiredSlot);
         }
 
-        if (!Config.ModConfig.Instance.MoreDebugCfg.Value) {
+        if (!ModConfig.Instance.MoreDebugCfg.Value) {
             return;
         }
 
@@ -184,17 +183,40 @@ public class GroundMotorPatch
         } else {
             sprintBuffer = 0f;
         }
-        if (!__instance.IsSprinting()) {
-            friction = 14f * HypnosisScreenFXControllerPatch.disorientedIntensity;
-        } else {
-            wasLastSprinting = true;
-            friction = 21f * HypnosisScreenFXControllerPatch.disorientedIntensity;
+
+        try {
+            if (!__instance.IsSprinting()) {
+                friction = 14f / HypnosisScreenFXControllerPatch.disorientedIntensity;
+            } else {
+                wasLastSprinting = true;
+                friction = 21f / HypnosisScreenFXControllerPatch.disorientedIntensity;
+            }
+
+            if (wasLastSprinting) {
+                friction = 21f / HypnosisScreenFXControllerPatch.disorientedIntensity;
+            }
+        } catch (System.DivideByZeroException) {
+            return;
         }
 
-        if (wasLastSprinting) {
-            friction = 21f * HypnosisScreenFXControllerPatch.disorientedIntensity;
-        }
 
         __result = Vector3.Lerp(__instance.movement.velocity, __result, friction * Time.deltaTime);
+    }
+}
+
+[HarmonyPatch(typeof(PlayerMotor))]
+public class PlayerMotorPatch
+{
+    static FieldInfo directionField = AccessTools.Field(typeof(PlayerMotor), "movementInputDirection");
+
+    [HarmonyPatch("Update")]
+    [HarmonyPostfix]
+    private static void UpdatePostfix(PlayerMotor __instance)
+    {
+        if (!ModConfig.Instance.InvertMovementCfg.Value || HypnosisScreenFXControllerPatch.unscaledDisorientedIntensity < 0.2f) {
+            return;
+        }
+
+        directionField.SetValue(__instance, -(Vector3)directionField.GetValue(__instance));
     }
 }
