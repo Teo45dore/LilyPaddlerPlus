@@ -1,7 +1,11 @@
+global using System.Collections.Generic;
+global using UnityEngine;
+global using System;
+global using Random = UnityEngine.Random;
+
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using LilyPaddlerPlus.Config;
 
 namespace LilyPaddlerPlus;
 
@@ -14,7 +18,7 @@ public class Plugin : BaseUnityPlugin
     internal static Harmony Harmony { get; set; }
     internal const string PLUGIN_GUID = "com.Teo45dore.LilyPaddlerPlus";
     internal const string PLUGIN_NAME = "LilyPaddlerPlus";
-    internal const string PLUGIN_VERSION = "1.1.0";
+    internal const string PLUGIN_VERSION = "1.2.0";
 
     private void Awake()
     {
