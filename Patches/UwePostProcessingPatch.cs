@@ -17,7 +17,6 @@ public static class UwePostProcessingPatch {
 
     [HarmonyPatch("UpdateDof")]
     [HarmonyTranspiler]
-    [HarmonyDebug]
     private static IEnumerable<CodeInstruction> UpdateDofTranspiler(IEnumerable<CodeInstruction> rawInstructions) {
         List<CodeInstruction> instructions = new List<CodeInstruction>(rawInstructions);
         
